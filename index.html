@@ -8,43 +8,70 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
+  /* Monochromatic Color Scheme */
   :root{
-    --bg:#081226; --card:#0b1220; --muted:#9aa9bf; --accent:#06b6d4;
-    --gradeA:#f59e0b; /* Amber */
-    --gradeB:#10b981; /* Emerald */
-    --gradeC:#6366f1; /* Indigo */
-    --warning:#f97316; /* Orange - Used for Lockout Risk */
-    --error:#ef4444; /* Red - Used for Bid Over Max Allowed */
+    --bg:#111111; /* Dark Gray / Black background */
+    --card:#222222; /* Slightly lighter card background */
+    --muted:#AAAAAA; /* Standard gray for muted text */
+    --accent:#CCCCCC; /* Light gray accent color */
+    --gradeA:#FFFFFF; /* White Grade A */
+    --gradeB:#BBBBBB; /* Light Gray Grade B */
+    --gradeC:#777777; /* Medium Gray Grade C */
+    --warning:#f97316; /* Orange - Used for Lockout Risk (Keep for criticality) */
+    --error:#ef4444; /* Red - Used for Bid Over Max Allowed (Keep for criticality) */
     font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+    color: #FFFFFF; /* Ensure all default text is white */
   }
   *{box-sizing:border-box}
-  body{margin:0;background:linear-gradient(180deg,#071127 0%, #071426 100%);color:#e6eef6}
-  header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  body{margin:0;background:linear-gradient(180deg,#0a0a0a 0%, #151515 100%);color:#FFFFFF}
+  header{
+    padding:14px 18px;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+    display:flex;
+    flex-direction: column; 
+    align-items:center; 
+    gap:8px;
+  }
   header h1{margin:0;font-size:18px}
   .wrap{display:grid;grid-template-columns:330px 1fr 380px;gap:16px;padding:16px}
-  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6);min-height:120px}
-  .small{font-size:13px;color:#9aa9bf}
-  .muted{color:#9aa9bf}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03)); padding:12px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.6);min-height:120px}
+  .small{font-size:13px;color:var(--muted)}
+  .muted{color:var(--muted)}
   label{display:block;margin-top:8px;font-size:13px}
-  input[type="text"], input[type="number"], select {width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
-  button {background:var(--accent);border:none;padding:8px 10px;border-radius:8px;color:#042;cursor:pointer;font-weight:700}
-  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:#9aa9bf}
+  /* Updated input/select to look monochromatic */
+  input[type="text"], input[type="number"], select {width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);background:transparent;color:inherit}
+  /* Primary button style changed to use white background with black text */
+  button {background:#FFFFFF;border:none;padding:8px 10px;border-radius:8px;color:#111111;cursor:pointer;font-weight:700}
+  /* Ghost button style changed to use light gray border */
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.1);color:var(--muted)}
   .players-list, .roster {max-height:420px;overflow:auto;padding-right:6px}
-  .player-item, .roster-item {display:flex;gap:10px;padding:8px;border-radius:8px;margin-bottom:8px;align-items:center;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))}
+  /* Updated player item background */
+  .player-item, .roster-item {display:flex;gap:10px;padding:8px;border-radius:8px;margin-bottom:8px;align-items:center;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))}
   .player-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover}
   .center {display:flex;flex-direction:column;align-items:center;gap:12px;justify-content:flex-start}
   .controls {display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
-  .increment{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;background:transparent;color:#9aa9bf}
-  .team-bid-btn{padding:8px;border-radius:8px;border:none;background:#0ea5a1;color:#012;cursor:pointer;font-weight:700}
-  .highlighted { box-shadow: 0 0 18px rgba(8,156,156,0.18); border-radius:8px; background: linear-gradient(90deg, rgba(8,156,156,0.06), rgba(8,156,156,0.03)); }
-  .undo {background:#ffb703;color:#081226;padding:8px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+  /* Increment buttons updated */
+  .increment{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.1);cursor:pointer;background:transparent;color:var(--muted)}
+  /* Team bid button updated (use a dark gray background for contrast) */
+  .team-bid-btn{padding:8px;border-radius:8px;border:none;background:#666666;color:#111111;cursor:pointer;font-weight:700}
+  /* Highlight effect updated */
+  .highlighted { box-shadow: 0 0 18px rgba(255,255,255,0.18); border-radius:8px; background: linear-gradient(90deg, rgba(255,255,255,0.08), rgba(255,255,255,0.04)); }
+  /* Undo button updated (use white background with black text for contrast) */
+  .undo {background:#FFFFFF;color:#111111;padding:8px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
   .grid-two {display:grid;grid-template-columns:1fr 1fr;gap:8px}
-  .dashboard-item {padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)}
+  /* Dashboard item background updated */
+  .dashboard-item {padding:8px;border-radius:8px;background:rgba(255,255,255,0.03)}
   .grade-A{color:var(--gradeA); font-weight: 700;}
   .grade-B{color:var(--gradeB); font-weight: 700;}
   .grade-C{color:var(--gradeC); font-weight: 700;}
   .failed-roster{border: 2px solid var(--error) !important; padding: 6px; border-radius: 8px;}
-  footer{padding:12px;color:#9aa9bf;text-align:center}
+  footer{padding:12px;color:var(--muted);text-align:center}
+  
+  /* Specific element updates for monochromatic look */
+  #currentCard hr {border-top:1px solid rgba(255,255,255,0.1) !important;}
+  .center div[style*="border-left:1px solid"] {border-left:1px solid rgba(255,255,255,0.06) !important;}
+  #log {background:rgba(255,255,255,0.03) !important;}
+
 
   @media (max-width:1100px){
     .wrap{grid-template-columns:1fr; padding:12px}
@@ -54,18 +81,18 @@
 </head>
 <body>
 <header>
-  <div>
-    <h1>Cricket Auction — Uniform 200 Base Price</h1>
+  <div style="text-align: center;">
+    <h1>Cricket Auction</h1>
     <div class="small muted">Max per team: <strong id="maxPerTeamLabel">9</strong> • **Compulsory 9 Players** • **ALL Players Base Price: 200**</div>
   </div>
-  <div class="small muted">Use Upload or Image URL when adding players.</div>
+  <div class="small muted">Start by importing players via CSV.</div>
 </header>
 
 <div class="wrap">
 
   <div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-      <div><strong>Add Player</strong><div class="small muted">Image upload or paste URL</div></div>
+      <div><strong>Add Player</strong><div class="small muted">Manual entry</div></div>
       <div style="display:flex;gap:8px">
         <button class="ghost" id="resetBtn">Reset</button>
         <button class="ghost" id="shuffleBtn">Shuffle Grades</button>
@@ -114,8 +141,16 @@
       <button id="addPlayerBtn">Add Player</button>
       <button id="addPlayerAndQueue" class="ghost">Add & Queue</button>
     </div>
-
-    <hr>
+    
+    <hr style="margin-top:12px; border:none; border-top:1px solid rgba(255,255,255,0.04)">
+    
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div><strong>Import Players</strong><div class="small muted">CSV format: Name,Role,Grade,Age(opt),Points(opt),ImgURL(opt)</div></div>
+    </div>
+    <input id="importFile" type="file" accept=".csv,text/csv">
+    <button id="importBtn" style="margin-top:8px">Upload & Import</button>
+    
+    <hr style="margin-top:12px; border:none; border-top:1px solid rgba(255,255,255,0.04)">
 
     <div style="display:flex;justify-content:space-between;align-items:center">
       <div><strong>Available Players</strong><div class="small muted" id="availableCount">0</div></div>
@@ -125,7 +160,9 @@
       </div>
     </div>
     
-    <div class="players-list" id="availableList" style="margin-top:8px"></div>
+    <div class="players-list" id="availableList" style="margin-top:8px">
+        <div class="small muted" style="padding: 10px; text-align: center;">No players available. Please import a CSV file.</div>
+    </div>
   </div>
 
   <div class="card center">
@@ -262,7 +299,7 @@ const UNIFORM_BASE_PRICE = 200; // Hardcoded uniform base price
 document.getElementById('maxPerTeamLabel').textContent = MAX_PER_TEAM;
 document.getElementById('maxLabel').textContent = MAX_PER_TEAM;
 
-// Defined Team Names (Only 5 teams, excluding GT, CSK, SRH per request)
+// Defined Team Names
 const teamNames = ["MI","DC","KKR","RCB","PUNE"];
 
 let players = []; 
@@ -356,10 +393,116 @@ function addPlayer(andQueue=false){
   } else if(url){
     finish(url);
   } else {
-    const placeholder = `https://dummyimage.com/200x200/0f172a/06b6d4&text=${encodeURIComponent(name.charAt(0))}`;
+    // Placeholder image
+    const initials = name.split(' ').map(n => n.charAt(0)).join('');
+    const placeholder = `https://dummyimage.com/200x200/222/FFF&text=${encodeURIComponent(initials)}`;
     finish(placeholder);
   }
 }
+
+/* ========== CSV Import Logic ========== */
+document.getElementById('importBtn').addEventListener('click', handleImport);
+
+function handleImport(){
+    const fileInput = document.getElementById('importFile');
+    if(fileInput.files.length === 0){
+        return alert('Please select a CSV file to import.');
+    }
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    
+    reader.onload = function(e){
+        const csvText = e.target.result;
+        const newPlayers = parseCSV(csvText);
+
+        if(newPlayers.length === 0) {
+            return alert('No valid players found in the CSV file.');
+        }
+
+        // Add new players to the main arrays
+        newPlayers.forEach(p => {
+            players.push(p);
+            available.push(p.id);
+        });
+
+        // Re-sort the available players by grade after import
+        available.sort((a,b)=>{
+            const pA = getPlayerById(a);
+            const pB = getPlayerById(b);
+            return gradeOrder[pA.grade] - gradeOrder[pB.grade];
+        });
+
+        updateAll();
+        appendLog(`Successfully imported ${newPlayers.length} players from CSV.`);
+        fileInput.value = ''; // Clear file input
+    };
+
+    reader.readAsText(file);
+}
+
+function parseCSV(csvText) {
+    const lines = csvText.split('\n').filter(line => line.trim() !== '');
+    if (lines.length < 2) return [];
+
+    // Header expected: Name,Role,Grade,Age,Points,ImgURL
+    const headers = lines[0].toLowerCase().split(',').map(h => h.trim());
+    const requiredHeaders = ['name', 'role', 'grade'];
+    
+    // Check if required headers are present
+    if (!requiredHeaders.every(h => headers.includes(h))) {
+        alert('CSV must contain the following columns: Name, Role, Grade.');
+        return [];
+    }
+
+    const importedPlayers = [];
+    const nameIndex = headers.indexOf('name');
+    const roleIndex = headers.indexOf('role');
+    const gradeIndex = headers.indexOf('grade');
+    const ageIndex = headers.indexOf('age');
+    const pointsIndex = headers.indexOf('points');
+    const imgUrlIndex = headers.indexOf('imgurl');
+
+    for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(',').map(v => v.trim());
+        
+        // Skip empty or incomplete lines
+        if (values.length < 3) continue;
+
+        const name = values[nameIndex];
+        const role = values[roleIndex];
+        const grade = values[gradeIndex].toUpperCase();
+        const age = Number(values[ageIndex]) || '';
+        const base = UNIFORM_BASE_PRICE;
+        const points = Number(values[pointsIndex]) || base; 
+        
+        let imgUrl = values[imgUrlIndex] || '';
+        if(!imgUrl) {
+            // Placeholder image if URL is missing (Monochromatic style)
+            const initials = name.split(' ').map(n => n.charAt(0)).join('');
+            imgUrl = `https://dummyimage.com/200x200/222/FFF&text=${encodeURIComponent(initials)}`;
+        }
+        
+        // Basic validation
+        if (!name || !role || !['A','B','C'].includes(grade)) {
+            console.warn(`Skipping invalid player in CSV: ${lines[i]}`);
+            continue;
+        }
+
+        importedPlayers.push({
+            id: uid(),
+            name,
+            age,
+            role,
+            base,
+            grade,
+            points,
+            img: imgUrl
+        });
+    }
+
+    return importedPlayers;
+}
+/* ========== END CSV Import Logic ========== */
 
 /* ========== Render available list ========== */
 function getPlayerById(id){ return players.find(p=>p.id===id) || null; }
@@ -369,6 +512,9 @@ function renderAvailable(){
   el.innerHTML = '';
   const list = available; 
   document.getElementById('availableCount').textContent = `${available.length} available`;
+  if(available.length === 0) {
+      el.innerHTML = '<div class="small muted" style="padding: 10px; text-align: center;">No players available. Please import a CSV file.</div>';
+  }
   for(const id of list){
     const p = getPlayerById(id);
     if(!p) continue;
@@ -433,13 +579,13 @@ function renderCurrent(){
 /* increment selection */
 document.querySelectorAll('.increment').forEach(b=>{
   b.addEventListener('click', ()=> {
-    document.querySelectorAll('.increment').forEach(x=>x.style.borderColor='rgba(255,255,255,0.03)');
-    b.style.borderColor = '#06b6d4';
+    document.querySelectorAll('.increment').forEach(x=>x.style.borderColor='rgba(255,255,255,0.1)');
+    b.style.borderColor = '#CCCCCC'; /* Use new accent color */
     state.increment = Number(b.dataset.inc);
   });
 });
 state.increment = 50; // default
-document.querySelector('.increment[data-inc="50"]').style.borderColor = '#06b6d4';
+document.querySelector('.increment[data-inc="50"]').style.borderColor = '#CCCCCC'; /* Use new accent color */
 
 function teamBid(team){
   if(!state.currentId) return alert('No current player');
@@ -512,18 +658,17 @@ function renderTeamBidButtons(){
         style = 'background: #94a3b8; cursor: not-allowed;';
     } else if (isCurrentBidder) {
         tooltip = `Currently the highest bidder.`;
-        style = 'background: #f59e0b; cursor: not-allowed;';
+        style = 'background: #555555; color:#EEEEEE; cursor: not-allowed;';
     } else if (!canMakeCompulsoryBid) {
-        // This handles both not having enough budget, OR exceeding the Max Allowed Bid.
         if (!canAffordNextBid) {
              tooltip = `Insufficient total budget to meet next bid of ${minNextBid} pts.`;
              style = 'background: var(--error); cursor: not-allowed;';
         } else {
-             // Bid is affordable, but breaks the compulsory roster rule (over maxAllowedSpend)
              tooltip = `⛔ BID TOO HIGH: Next bid (${minNextBid}) exceeds Max Allowed Bid (${maxAllowedSpend}). Must reserve ${minCostToFill} pts for ${remainingSpotsIfBuy} players.`;
              style = 'background: var(--error); cursor: not-allowed;';
         }
     } else {
+        style = 'background: #666666; color: #111111;'; 
          // Bid is valid, but applying a visual warning if they are close to the limit
          if (team.budget - minNextBid < minCostToFill + UNIFORM_BASE_PRICE) {
              tooltip = `⚠️ CAUTION: Bid is valid (${minNextBid}), but budget will be tight for the remaining players. Must reserve ${minCostToFill} pts.`;
@@ -584,14 +729,12 @@ document.getElementById('manualSell').addEventListener('click', ()=>{
 document.getElementById('passBtn').addEventListener('click', ()=>{
   if(!state.currentId) return alert('No current player');
   
-  // Check if every team below MAX_PER_TEAM can afford the current player's minimum base price
   const p = getPlayerById(state.currentId);
   const teamsNeedingPlayers = Object.keys(teams).filter(name => teams[name].roster.length < MAX_PER_TEAM);
   
   if (teamsNeedingPlayers.length === 0) {
       if(!confirm('All teams have a full roster. Mark current player UNSOLD?')) return;
   } else {
-      // Check if any team *must* buy this player to meet the 9-player minimum later
       let affordableTeams = teamsNeedingPlayers.filter(name => teams[name].budget >= p.base);
       
       if (affordableTeams.length > 0) {
@@ -626,7 +769,13 @@ function viewProfile(id){
   if(!p) return;
   const gradeClass = `grade-${p.grade}`;
   const html = `
-    <div style="padding:18px;font-family:Inter;color:#0b1220">
+    <div style="padding:18px;font-family:Inter;color:#111111; background: #FFFFFF">
+      <style>
+        .grade-A{color:#111111; font-weight: 700;}
+        .grade-B{color:#333333; font-weight: 700;}
+        .grade-C{color:#666666; font-weight: 700;}
+        #closeBtn {background:#111111;border:none;padding:8px 10px;border-radius:8px;color:#FFFFFF;cursor:pointer;font-weight:700}
+      </style>
       <h2>${p.name}</h2>
       <img src="${p.img}" style="width:180px;height:180px;object-fit:cover;border-radius:8px"><br>
       <div style="margin-top:8px"><strong>Grade:</strong> <span class="${gradeClass}">${p.grade}</span></div>
@@ -711,6 +860,7 @@ function undoLastSale(){
 
   appendLog(`Undo: ${removed.name} (Grade ${removed.grade}) removed from ${team}, refunded ${price} pts`);
   renderAvailable();
+  renderCurrent();
   renderTeams();
   updateDashboard();
 }
@@ -738,7 +888,7 @@ function renderTeams(){
       <div style="margin-top:8px;max-height:160px;overflow:auto">
         ${t.roster.length===0 ? '<div class="small muted">No players</div>' : t.roster.map(r=>{
             const gradeClass = `grade-${r.grade}`;
-            return `<div class="roster-item" data-playerid="${r.id}" style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;margin-bottom:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))">
+            return `<div class="roster-item" data-playerid="${r.id}" style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;margin-bottom:6px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01))">
             <div style="display:flex;gap:10px;align-items:center"><img src="${r.img}" style="width:40px;height:40px;object-fit:cover;border-radius:6px"><div><strong>${r.name}</strong> <span class="${gradeClass}">(${r.grade})</span><div class="small muted">${r.role} • Age: ${r.age || '—'}</div></div></div>
             <div class="small muted">${r.price} pts</div>
           </div>`;
@@ -754,18 +904,25 @@ function renderTeams(){
 function viewTeam(name){
   const t = teams[name];
   const html = `
-    <div style="padding:14px;font-family:Inter;color:#0b1220">
-      <h2>${name}</h2>
-      <div><strong>Budget left:</strong> ${t.budget}</div>
-      <div><strong>Spent:</strong> ${t.spent}</div>
-      <div><strong>Players:</strong> ${t.roster.length}/${MAX_PER_TEAM}</div>
-      <div style="margin-top:10px">
+    <div style="padding:14px;font-family:Inter;color:#111111; background: #FFFFFF">
+        <style>
+            .grade-A{color:#111111; font-weight: 700;}
+            .grade-B{color:#333333; font-weight: 700;}
+            .grade-C{color:#666666; font-weight: 700;}
+            .small.muted{color:#666666}
+            #closeTeam {background:#111111;border:none;padding:8px 10px;border-radius:8px;color:#FFFFFF;cursor:pointer;font-weight:700}
+        </style>
+        <h2>${name}</h2>
+        <div><strong>Budget left:</strong> ${t.budget}</div>
+        <div><strong>Spent:</strong> ${t.spent}</div>
+        <div><strong>Players:</strong> ${t.roster.length}/${MAX_PER_TEAM}</div>
+        <div style="margin-top:10px">
         ${t.roster.length===0 ? '<div>No players</div>' : t.roster.map(r=>{
             const gradeClass = `grade-${r.grade}`;
-            return `<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><img src="${r.img}" style="width:50px;height:50px;object-fit:cover;border-radius:6px"><div><strong>${r.name}</strong> <span class="${gradeClass}">(${r.grade})</span><div>${r.role} • Age: ${r.age || '—'}</div><div class="small muted">Price: ${r.price} pts</div></div></div>`;
+            return `<div style="display:flex;gap:8px;align-items:center;margin-top:6px;background:#f3f4f6; padding: 6px; border-radius: 6px;"><img src="${r.img}" style="width:50px;height:50px;object-fit:cover;border-radius:6px"><div><strong>${r.name}</strong> <span class="${gradeClass}">(${r.grade})</span><div>${r.role} • Age: ${r.age || '—'}</div><div class="small muted">Price: ${r.price} pts</div></div></div>`;
             }).join('')}
-      </div>
-      <div style="margin-top:10px"><button id="closeTeam">Close</button></div>
+        </div>
+        <div style="margin-top:10px"><button id="closeTeam">Close</button></div>
     </div>
   `;
   const w = window.open('', '_blank', 'width=420,height=680');
@@ -782,7 +939,7 @@ function renderLeaderboard(){
     return {name, points: t.pointsSum || 0, spent: t.spent, players: t.roster.length, budget: t.budget, failed: isRosterFailure};
   }).sort((a,b)=> b.points - a.points || a.spent - b.spent);
   const el = document.getElementById('leaderboard');
-  el.innerHTML = `<div style="font-weight:800">Leaderboard (by Points)</div>` + arr.map((t,i)=>`<div style="display:flex;justify-content:space-between;padding:6px;border-radius:6px;margin-top:6px;background:rgba(255,255,255,0.01) ${t.failed ? 'border:1px solid var(--error);' : ''}"><div><strong>#${i+1}</strong> ${t.name} ${t.failed ? '⚠️' : ''}</div><div class="small muted">Pts: ${t.points} • Spent: ${t.spent} • Players: ${t.players}</div></div>`).join('');
+  el.innerHTML = `<div style="font-weight:800">Leaderboard (by Points)</div>` + arr.map((t,i)=>`<div style="display:flex;justify-content:space-between;padding:6px;border-radius:6px;margin-top:6px;background:rgba(255,255,255,0.03) ${t.failed ? 'border:1px solid var(--error);' : ''}"><div><strong>#${i+1}</strong> ${t.name} ${t.failed ? '⚠️' : ''}</div><div class="small muted">Pts: ${t.points} • Spent: ${t.spent} • Players: ${t.players}</div></div>`).join('');
 }
 
 /* ========== Dashboard & Chart ========== */
@@ -808,10 +965,11 @@ function updateDashboard(){
 function renderChart(labels,data){
   const ctx = document.getElementById('spendChart').getContext('2d');
   if(chart) chart.destroy();
+  // Use shades of gray/white for the chart background colors
   chart = new Chart(ctx, {
     type: 'pie',
-    data: { labels, datasets:[{data, backgroundColor: ['#06b6d4','#0ea5a1','#f59e0b','#ef4444','#10b981'] }]},
-    options: { plugins: { legend:{position:'bottom', labels:{color:'#e6eef6'} } } }
+    data: { labels, datasets:[{data, backgroundColor: ['#BBBBBB','#777777','#555555','#333333','#111111'] }]},
+    options: { plugins: { legend:{position:'bottom', labels:{color:'#FFFFFF'} } } }
   });
 }
 
@@ -868,8 +1026,6 @@ document.getElementById('resetBtn').addEventListener('click', ()=>{
   if(!confirm('Reset auction? This clears players and teams.')) return;
   players = []; available = []; saleHistory = []; state.currentId = null; state.currentBid = 0; state.currentBidder = null;
   initTeams();
-  // Re-seed players after reset
-  seedPlayers();
   updateAll();
   appendLog('Auction reset');
 });
@@ -910,94 +1066,15 @@ document.getElementById('shuffleBtn').addEventListener('click', ()=> {
 
 /* ========== Initialize UI & data ========== */
 function updateAll(){
+  initTeams();
   renderAvailable();
   renderCurrent();
   renderTeams();
   updateDashboard();
 }
+
+// Initial initialization (without seeding players)
 initTeams();
-
-/* Player Seed Data: Generating 45 Indian Players with Grades and UNIFORM BASE PRICE */
-function seedPlayers(){
-  const firstNames = ['Amit', 'Anil', 'Ashok', 'Gaurav', 'Harsh', 'Jatin', 'Kunal', 'Manish', 'Nikhil', 'Praveen', 'Rajesh', 'Ramesh', 'Sanjay', 'Sunil', 'Vikas', 'Yogesh', 'Girish', 'Dheeraj', 'Kamlesh', 'Brijesh', 'Manoj', 'Mukesh', 'Rohan', 'Suraj', 'Vimal', 'Deepak', 'Arjun', 'Chetan', 'Farooq', 'Hiten', 'Ishaan', 'Kartik', 'Lalit', 'Navdeep', 'Ojas', 'Piyush', 'Quadir', 'Ravi', 'Sachin', 'Tushar', 'Umesh', 'Vinay', 'Waseem', 'Xavier', 'Yuvraj'];
-  const lastNames = ['Yadav', 'Sharma', 'Verma', 'Singh', 'Kumar', 'Reddy', 'Patil', 'Gupta', 'Saini', 'Pandey', 'Mishra', 'Chauhan', 'Thakur', 'Goyal', 'Jain', 'Shah', 'Patel', 'Das', 'Dutta', 'Sinha', 'Chopra', 'Malik', 'Saxena', 'Tiwari', 'Rao', 'Zaman', 'Gill', 'Joshi', 'Dubey', 'Gautam', 'Khan', 'Rajput', 'Shinde', 'Kulkarni', 'Naidu', 'Soni', 'Bhatia', 'Mourya', 'Nair', 'Siddiqui', 'Virk', 'Dev', 'Trivedi', 'Warsi', 'Qureshi'];
-  const roles = ['Batsman', 'Bowler', 'All-rounder', 'WK'];
-  const grades = ['A', 'B', 'C'];
-  const totalPlayers = 45;
-  const gradeCounts = { 'A': 10, 'B': 15, 'C': 20 }; // Using same counts as before for variety
-
-  const playerList = [];
-
-  const gradePools = { 'A': [], 'B': [], 'C': [] };
-  
-  // Fill pools with unique players until counts are met
-  while(playerList.length < totalPlayers){
-    let name = '';
-    let grade;
-
-    // Determine the grade for the current player
-    if (gradePools['A'].length < gradeCounts['A']) {
-        grade = 'A';
-    } else if (gradePools['B'].length < gradeCounts['B']) {
-        grade = 'B';
-    } else if (gradePools['C'].length < gradeCounts['C']) {
-        grade = 'C';
-    } else {
-        break; 
-    }
-
-    // Generate unique name
-    do {
-        const fName = firstNames[rnd(firstNames.length)];
-        const lName = lastNames[rnd(lastNames.length)];
-        name = `${fName} ${lName}`;
-    } while (playerList.some(p => p.name === name)); 
-
-    const role = roles[rnd(roles.length)];
-    const age = 20 + rnd(15);
-    const base = UNIFORM_BASE_PRICE; // Enforce UNIFORM BASE PRICE (200)
-    
-    const initials = name.split(' ').map(n => n.charAt(0)).join('');
-    const imgUrl = `https://dummyimage.com/200x200/0f172a/06b6d4&text=${encodeURIComponent(initials)}`;
-
-    const newPlayer = {
-        name: name,
-        age: age,
-        role: role,
-        grade: grade,
-        base: base,
-        points: base, 
-        img: imgUrl
-    };
-    
-    playerList.push(newPlayer);
-    gradePools[grade].push(newPlayer);
-  }
-  
-  // Shuffle players within their grade and then combine them in order (A -> B -> C)
-  const shuffleArray = (arr) => {
-    for(let i=arr.length-1;i>0;i--){
-      const j = rnd(i+1);
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-  };
-  
-  shuffleArray(gradePools['A']);
-  shuffleArray(gradePools['B']);
-  shuffleArray(gradePools['C']);
-
-  const finalOrder = gradePools['A'].concat(gradePools['B']).concat(gradePools['C']);
-
-  // Add generated players to the auction
-  finalOrder.forEach(s=>{
-    const id = uid();
-    players.push({...s,id});
-    available.push(id);
-  });
-}
-
-// Initial seed on load
-seedPlayers();
 updateAll();
 
 /* playBid / playSold wrappers to activate audio context on first user action */
