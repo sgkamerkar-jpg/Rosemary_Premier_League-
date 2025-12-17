@@ -1,0 +1,1009 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Cricket Auction — Compulsory 9 Players, Uniform 200 Base</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+  :root{
+    --bg:#081226; --card:#0b1220; --muted:#9aa9bf; --accent:#06b6d4;
+    --gradeA:#f59e0b; /* Amber */
+    --gradeB:#10b981; /* Emerald */
+    --gradeC:#6366f1; /* Indigo */
+    --warning:#f97316; /* Orange - Used for Lockout Risk */
+    --error:#ef4444; /* Red - Used for Bid Over Max Allowed */
+    font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:linear-gradient(180deg,#071127 0%, #071426 100%);color:#e6eef6}
+  header{padding:14px 18px;border-bottom:1px solid rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:space-between;gap:12px}
+  header h1{margin:0;font-size:18px}
+  .wrap{display:grid;grid-template-columns:330px 1fr 380px;gap:16px;padding:16px}
+  .card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01)); padding:12px;border-radius:12px;box-shadow:0 8px 30px rgba(2,6,23,0.6);min-height:120px}
+  .small{font-size:13px;color:#9aa9bf}
+  .muted{color:#9aa9bf}
+  label{display:block;margin-top:8px;font-size:13px}
+  input[type="text"], input[type="number"], select {width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:inherit}
+  button {background:var(--accent);border:none;padding:8px 10px;border-radius:8px;color:#042;cursor:pointer;font-weight:700}
+  button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.04);color:#9aa9bf}
+  .players-list, .roster {max-height:420px;overflow:auto;padding-right:6px}
+  .player-item, .roster-item {display:flex;gap:10px;padding:8px;border-radius:8px;margin-bottom:8px;align-items:center;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))}
+  .player-thumb{width:56px;height:56px;border-radius:6px;object-fit:cover}
+  .center {display:flex;flex-direction:column;align-items:center;gap:12px;justify-content:flex-start}
+  .controls {display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:center}
+  .increment{padding:6px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer;background:transparent;color:#9aa9bf}
+  .team-bid-btn{padding:8px;border-radius:8px;border:none;background:#0ea5a1;color:#012;cursor:pointer;font-weight:700}
+  .highlighted { box-shadow: 0 0 18px rgba(8,156,156,0.18); border-radius:8px; background: linear-gradient(90deg, rgba(8,156,156,0.06), rgba(8,156,156,0.03)); }
+  .undo {background:#ffb703;color:#081226;padding:8px;border-radius:8px;border:none;cursor:pointer;font-weight:700}
+  .grid-two {display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .dashboard-item {padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)}
+  .grade-A{color:var(--gradeA); font-weight: 700;}
+  .grade-B{color:var(--gradeB); font-weight: 700;}
+  .grade-C{color:var(--gradeC); font-weight: 700;}
+  .failed-roster{border: 2px solid var(--error) !important; padding: 6px; border-radius: 8px;}
+  footer{padding:12px;color:#9aa9bf;text-align:center}
+
+  @media (max-width:1100px){
+    .wrap{grid-template-columns:1fr; padding:12px}
+    .players-list, .roster{max-height:240px}
+  }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>Cricket Auction — Uniform 200 Base Price</h1>
+    <div class="small muted">Max per team: <strong id="maxPerTeamLabel">9</strong> • **Compulsory 9 Players** • **ALL Players Base Price: 200**</div>
+  </div>
+  <div class="small muted">Use Upload or Image URL when adding players.</div>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div><strong>Add Player</strong><div class="small muted">Image upload or paste URL</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" id="resetBtn">Reset</button>
+        <button class="ghost" id="shuffleBtn">Shuffle Grades</button>
+      </div>
+    </div>
+
+    <label>Player Name</label>
+    <input id="addName" type="text" placeholder="e.g. Rohit Sharma">
+
+    <div class="grid-two">
+      <div>
+        <label>Age</label>
+        <input id="addAge" type="number" min="15" max="60" placeholder="30">
+      </div>
+      <div>
+        <label>Role</label>
+        <select id="addRole">
+          <option value="Batsman">Batsman</option>
+          <option value="Bowler">Bowler</option>
+          <option value="All-rounder">All-rounder</option>
+          <option value="WK">WK</option>
+        </select>
+      </div>
+    </div>
+
+    <label>Grade</label>
+    <select id="addGrade" onchange="updateBasePrice()">
+        <option value="C">Grade C</option>
+        <option value="B">Grade B</option>
+        <option value="A">Grade A</option>
+    </select>
+
+    <label>Base Price (points) - *Locked at 200*</label>
+    <input id="addBase" type="number" value="200" min="1" readonly>
+
+    <label>Points (optional, used for leaderboard)</label>
+    <input id="addPoints" type="number" placeholder="leave empty to use base price (200)">
+
+    <label>Image Upload</label>
+    <input id="addImageFile" type="file" accept="image/*">
+
+    <label style="margin-top:6px">— or paste Image URL</label>
+    <input id="addImageURL" type="text" placeholder="https://...">
+
+    <div style="margin-top:10px;display:flex;gap:8px">
+      <button id="addPlayerBtn">Add Player</button>
+      <button id="addPlayerAndQueue" class="ghost">Add & Queue</button>
+    </div>
+
+    <hr>
+
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <div><strong>Available Players</strong><div class="small muted" id="availableCount">0</div></div>
+      <div style="display:flex;gap:8px">
+        <button class="ghost" id="drawBtn">🎲 Draw Next Player</button>
+        <label class="small" style="display:flex;align-items:center;gap:6px"><input id="autoContinue" type="checkbox"> Auto</label>
+      </div>
+    </div>
+    
+    <div class="players-list" id="availableList" style="margin-top:8px"></div>
+  </div>
+
+  <div class="card center">
+    <div style="width:100%;max-width:840px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+        <div><strong>Current Player</strong></div>
+        <div class="small muted">Increment:</div>
+      </div>
+
+      <div id="currentCard" style="display:none;padding:12px;border-radius:8px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))">
+        <div style="display:flex;gap:12px;align-items:center">
+          <img id="currentThumb" class="player-thumb" src="" alt="">
+          <div style="flex:1">
+            <div style="font-weight:800" id="currentName"></div>
+            <div class="small muted" id="currentMeta"></div>
+            <div id="currentGrade" class="small"></div>
+          </div>
+          <div style="text-align:right">
+            <div class="small muted">Base</div>
+            <div id="currentBase" style="font-weight:900;font-size:20px">200</div>
+          </div>
+        </div>
+
+        <hr style="margin:8px 0;border:none;border-top:1px solid rgba(255,255,255,0.04)">
+
+        <div style="display:flex;align-items:center;gap:14px;justify-content:center;flex-wrap:wrap">
+          <div style="text-align:center">
+            <div class="small muted">Highest Bid</div>
+            <div id="currentBid" style="font-weight:900;font-size:22px">—</div>
+            <div class="small muted">by <span id="currentBidder">—</span></div>
+          </div>
+          
+          <div style="text-align:center;border-left:1px solid rgba(255,255,255,0.06);padding-left:14px">
+            <div class="small muted">Max Possible Bid</div>
+            <div id="maxPossibleBid" style="font-weight:900;font-size:22px">—</div>
+            <div class="small muted">Highest remaining budget</div>
+          </div>
+          <div>
+            <div class="small muted">Increase</div>
+            <div style="display:flex;gap:6px;margin-top:6px">
+              <button class="increment" data-inc="10">+10</button>
+              <button class="increment" data-inc="50">+50</button>
+              <button class="increment" data-inc="100">+100</button>
+              <button class="increment" data-inc="200">+200</button>
+            </div>
+          </div>
+
+          <div style="min-width:220px">
+            <div class="small muted">Teams (click to bid)</div>
+            <div id="teamBidBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px;justify-content:center"></div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:8px;justify-content:center;margin-top:12px">
+          <button id="manualSell" class="ghost">Sell to Highest</button>
+          <button id="passBtn" class="ghost">Pass (Unsold)</button>
+          <button id="profileBtn" class="ghost">View Profile</button>
+        </div>
+      </div>
+
+      <div id="noCurrent" style="text-align:center;color:#9aa9bf;margin-top:30px">No player drawn. Use "Draw Next Player" to proceed in Grade order.</div>
+
+      <hr style="margin-top:12px">
+
+      <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-top:8px">
+        <button id="exportBtn">Export CSV</button>
+        <button id="undoBtn" class="undo">↩️ Undo Last Sale</button>
+      </div>
+
+      <div style="margin-top:18px">
+        <strong>Auction Log</strong>
+        <div id="log" style="max-height:160px;overflow:auto;margin-top:8px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+      <div><strong>Teams</strong><div class="small muted">Max players each: <strong id="maxLabel">9</strong> • **Compulsory**</div></div>
+      <div style="display:flex;gap:8px">
+        <button id="sortLeaderboard" class="ghost">Sort Leaderboard</button>
+      </div>
+    </div>
+
+    <div id="leaderboard" class="dashboard-item" style="margin-bottom:10px"></div>
+
+    <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+      <div style="flex:1" class="dashboard-item">
+        <div style="font-weight:800">Dashboard</div>
+        <div class="small muted">Overview</div>
+        <div style="margin-top:8px" id="dashboardGrid"></div>
+      </div>
+      <div style="width:180px;padding:8px;border-radius:8px;background:rgba(255,255,255,0.01)">
+        <canvas id="spendChart" width="180" height="180"></canvas>
+      </div>
+    </div>
+
+    <div id="teamsContainer" class="teams"></div>
+  </div>
+
+</div>
+
+<footer>Built with player grading • compulsory 9 players • all base prices locked at 200</footer>
+
+<script>
+/* WebAudio simple tones */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playTone(freq=880, dur=0.06, type='sine'){
+  try {
+    const o = audioCtx.createOscillator();
+    const g = audioCtx.createGain();
+    o.type = type; o.frequency.value = freq;
+    o.connect(g); g.connect(audioCtx.destination);
+    g.gain.setValueAtTime(0.0001, audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.12, audioCtx.currentTime + 0.01);
+    o.start();
+    g.gain.exponentialRampToValueAtTime(0.0001, audioCtx.currentTime + dur);
+    o.stop(audioCtx.currentTime + dur + 0.02);
+  } catch(e){}
+}
+function playBid(){ try{ if(audioCtx.state==='suspended') audioCtx.resume(); playTone(900,0.05,'square'); } catch(e){} }
+function playSold(){ try{ if(audioCtx.state==='suspended') audioCtx.resume(); playTone(520,0.15,'sine'); } catch(e){} }
+</script>
+
+<script>
+/* ========== CONFIGURATION ========== */
+const MAX_PER_TEAM = 9;
+const TEAM_COUNT = 5;
+const TEAM_BUDGET = 5000;
+const UNIFORM_BASE_PRICE = 200; // Hardcoded uniform base price
+
+/* =================================== */
+
+document.getElementById('maxPerTeamLabel').textContent = MAX_PER_TEAM;
+document.getElementById('maxLabel').textContent = MAX_PER_TEAM;
+
+// UPDATED TEAM NAMES
+const teamNames = ["MI","DC","KKR","RCB","PUNE"];
+while(teamNames.length < TEAM_COUNT) teamNames.push("Team " + (teamNames.length+1));
+
+let players = []; 
+let available = []; // player ids currently available, sorted by Grade (A, B, C)
+let teams = {}; 
+let state = { currentId: null, currentBid: 0, currentBidder: null, increment: 50 };
+let saleHistory = []; 
+
+let chart = null;
+
+/* Grade Helper */
+const gradeOrder = {'A': 1, 'B': 2, 'C': 3};
+
+/* init teams */
+function initTeams(){
+  teams = {};
+  teamNames.slice(0,TEAM_COUNT).forEach(n=>{
+    teams[n] = {budget: TEAM_BUDGET, roster: [], spent:0, pointsSum:0};
+  });
+}
+
+/* utilities */
+function rnd(i){ return Math.floor(Math.random()*i); }
+function uid(){ return 'p' + Math.random().toString(36).slice(2,9); }
+function appendLog(txt){
+  const now = new Date().toLocaleTimeString();
+  const log = document.getElementById('log');
+  log.innerHTML = `<div style="padding:4px 0"><span class="muted">${now}</span> — ${txt}</div>` + log.innerHTML;
+}
+
+/* Get Max Budget across all teams */
+function getMaxPossibleBid(){
+  if(Object.keys(teams).length === 0) return 0;
+  const maxBudget = Math.max(...Object.values(teams).map(t => t.budget));
+  return maxBudget === -Infinity ? 0 : maxBudget;
+}
+
+/* Update Base Price based on selected grade in Add Player form */
+function updateBasePrice() {
+    // Base Price is now uniform, so we just enforce the UNIFORM_BASE_PRICE
+    document.getElementById('addBase').value = UNIFORM_BASE_PRICE;
+}
+window.updateBasePrice = updateBasePrice; 
+
+/* ========== Add player (Manual) ========== */
+document.getElementById('addPlayerBtn').addEventListener('click', addPlayer);
+document.getElementById('addPlayerAndQueue').addEventListener('click', ()=>{ addPlayer(true); });
+
+function addPlayer(andQueue=false){
+  const name = document.getElementById('addName').value.trim();
+  const age = Number(document.getElementById('addAge').value) || '';
+  const role = document.getElementById('addRole').value;
+  const grade = document.getElementById('addGrade').value;
+  // Use the uniform base price for manual entry
+  const base = UNIFORM_BASE_PRICE; 
+  const ptsInput = document.getElementById('addPoints').value.trim();
+  const points = ptsInput === '' ? base : Number(ptsInput);
+  const file = document.getElementById('addImageFile').files[0];
+  const url = document.getElementById('addImageURL').value.trim();
+
+  if(!name) return alert('Enter player name');
+
+  const id = uid();
+  function finish(imgData){
+    const p = {id,name,age,role,base,grade,points,img:imgData};
+    players.push(p);
+    // Add to available and resort to maintain grade order
+    available.push(id);
+    available.sort((a,b)=>{
+        const pA = getPlayerById(a);
+        const pB = getPlayerById(b);
+        return gradeOrder[pA.grade] - gradeOrder[pB.grade];
+    });
+
+    updateAll();
+    appendLog(`Added ${name} (Grade ${grade})`);
+    // clear form
+    document.getElementById('addName').value = '';
+    document.getElementById('addAge').value = '';
+    document.getElementById('addBase').value = UNIFORM_BASE_PRICE;
+    document.getElementById('addPoints').value = '';
+    document.getElementById('addImageFile').value = '';
+    document.getElementById('addImageURL').value = '';
+    document.getElementById('addGrade').value = 'C';
+  }
+
+  if(file){
+    const r = new FileReader();
+    r.onload = e => finish(e.target.result);
+    r.readAsDataURL(file);
+  } else if(url){
+    finish(url);
+  } else {
+    const placeholder = `https://dummyimage.com/200x200/0f172a/06b6d4&text=${encodeURIComponent(name.charAt(0))}`;
+    finish(placeholder);
+  }
+}
+
+/* ========== Render available list ========== */
+function getPlayerById(id){ return players.find(p=>p.id===id) || null; }
+
+function renderAvailable(){
+  const el = document.getElementById('availableList');
+  el.innerHTML = '';
+  const list = available; 
+  document.getElementById('availableCount').textContent = `${available.length} available`;
+  for(const id of list){
+    const p = getPlayerById(id);
+    if(!p) continue;
+    const gradeClass = `grade-${p.grade}`;
+    const div = document.createElement('div');
+    div.className = 'player-item';
+    div.innerHTML = `
+      <img src="${p.img}" class="player-thumb" alt="">
+      <div style="flex:1">
+        <div style="font-weight:800">${p.name} <span class="${gradeClass}">(${p.grade})</span></div>
+        <div class="small muted">${p.role} • Base: ${p.base} • Points: ${p.points}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="ghost" data-id="${p.id}" onclick="viewProfile('${p.id}')">Profile</button>
+      </div>
+    `;
+    el.appendChild(div);
+  }
+}
+
+/* ========== Draw next player (respects Grade order) ========== */
+document.getElementById('drawBtn').addEventListener('click', drawNextPlayer);
+
+function drawNextPlayer(){
+  if(state.currentId) return alert('Finish current player first');
+  let id = null;
+  
+  if(available.length > 0) id = available.shift();
+  
+  if(!id) {
+    alert('No players left to draw. Auction finished.');
+    return;
+  }
+  state.currentId = id;
+  state.currentBid = 0;
+  state.currentBidder = null;
+  renderCurrent();
+  appendLog(`Drawn ${getPlayerById(id).name} (Grade ${getPlayerById(id).grade}) for auction`);
+}
+
+/* ========== Current player UI & bidding ========== */
+function renderCurrent(){
+  const card = document.getElementById('currentCard');
+  const noCur = document.getElementById('noCurrent');
+  if(!state.currentId){ card.style.display='none'; noCur.style.display='block'; return; }
+  noCur.style.display='none'; card.style.display='block';
+  const p = getPlayerById(state.currentId);
+  const gradeClass = `grade-${p.grade}`;
+  
+  document.getElementById('currentThumb').src = p.img;
+  document.getElementById('currentName').textContent = p.name;
+  document.getElementById('currentMeta').textContent = `${p.role} • Age: ${p.age ? p.age : '—'}`;
+  document.getElementById('currentGrade').innerHTML = `Grade: <span class="${gradeClass}">${p.grade}</span>`;
+  document.getElementById('currentBase').textContent = p.base; // Should be 200
+  document.getElementById('currentBid').textContent = state.currentBid === 0 ? '—' : state.currentBid + ' pts';
+  document.getElementById('currentBidder').textContent = state.currentBidder || '—';
+  // Update max possible bid (highest budget across all teams)
+  document.getElementById('maxPossibleBid').textContent = getMaxPossibleBid() + ' pts';
+  renderTeamBidButtons();
+}
+
+/* increment selection */
+document.querySelectorAll('.increment').forEach(b=>{
+  b.addEventListener('click', ()=> {
+    document.querySelectorAll('.increment').forEach(x=>x.style.borderColor='rgba(255,255,255,0.03)');
+    b.style.borderColor = '#06b6d4';
+    state.increment = Number(b.dataset.inc);
+  });
+});
+state.increment = 50; // default
+document.querySelector('.increment[data-inc="50"]').style.borderColor = '#06b6d4';
+
+function teamBid(team){
+  if(!state.currentId) return alert('No current player');
+  const p = getPlayerById(state.currentId);
+  // compute next
+  let next = state.currentBid === 0 ? Math.max(state.increment, p.base) : state.currentBid + state.increment;
+  
+  // existing checks remain
+  const teamRoster = teams[team].roster.length;
+  if(teamRoster >= MAX_PER_TEAM){
+    alert(`${team} already has maximum ${MAX_PER_TEAM} players`);
+    return;
+  }
+  
+  // Max Bid Check (Compulsory Roster Logic)
+  const remainingSpotsIfBuy = MAX_PER_TEAM - (teamRoster + 1);
+  const minCostToFill = remainingSpotsIfBuy * UNIFORM_BASE_PRICE; // Use UNIFORM_BASE_PRICE (200)
+  const maxAllowedSpend = teams[team].budget - minCostToFill;
+
+  // The critical check that prevents bidding over the Max Allowed Spend
+  if (teams[team].budget < next || next > maxAllowedSpend) {
+    alert(`${team} cannot afford this bid (${next} pts). Maximum allowed bid to ensure 9 players is ${maxAllowedSpend} pts.`);
+    return;
+  }
+  
+  if (state.currentBidder === team) {
+    alert(`${team} is already the highest bidder. Increase the bid increment for another team to bid.`);
+    return;
+  }
+
+  state.currentBid = next;
+  state.currentBidder = team;
+  playBid();
+  renderCurrent();
+  appendLog(`${team} bid ${next} pts`);
+}
+
+/* render team bid buttons */
+function renderTeamBidButtons(){
+  const el = document.getElementById('teamBidBtns');
+  el.innerHTML = '';
+  const p = getPlayerById(state.currentId);
+  if (!p) return;
+
+  // Calculate the minimum required bid for the current player
+  const minNextBid = state.currentBid === 0 ? Math.max(state.increment, p.base) : state.currentBid + state.increment;
+
+  for(const name of teamNames.slice(0,TEAM_COUNT)){
+    const team = teams[name];
+    
+    const teamRoster = team.roster.length;
+    const isRosterFull = teamRoster >= MAX_PER_TEAM;
+    const isCurrentBidder = state.currentBidder === name;
+    
+    // Max Allowed Spend calculation (Compulsory Roster check)
+    const remainingSpotsIfBuy = MAX_PER_TEAM - (teamRoster + 1);
+    const minCostToFill = remainingSpotsIfBuy * UNIFORM_BASE_PRICE; // 200 pts per remaining spot
+    const maxAllowedSpend = team.budget - minCostToFill;
+    
+    // --- CRITICAL MAX BID LOGIC CHECK ---
+    const canAffordNextBid = team.budget >= minNextBid;
+    const canMakeCompulsoryBid = canAffordNextBid && (minNextBid <= maxAllowedSpend);
+
+
+    let tooltip = `Budget: ${team.budget} pts. Players: ${teamRoster}/${MAX_PER_TEAM}.`;
+    let style = '';
+    
+    if (isRosterFull) {
+        tooltip = `${name} roster is full (${MAX_PER_TEAM} players).`;
+        style = 'background: #94a3b8; cursor: not-allowed;';
+    } else if (isCurrentBidder) {
+        tooltip = `Currently the highest bidder.`;
+        style = 'background: #f59e0b; cursor: not-allowed;';
+    } else if (!canMakeCompulsoryBid) {
+        // This handles both not having enough budget, OR exceeding the Max Allowed Bid.
+        if (!canAffordNextBid) {
+             tooltip = `Insufficient total budget to meet next bid of ${minNextBid} pts.`;
+             style = 'background: var(--error); cursor: not-allowed;';
+        } else {
+             // Bid is affordable, but breaks the compulsory roster rule (over maxAllowedSpend)
+             tooltip = `⛔ BID TOO HIGH: Next bid (${minNextBid}) exceeds Max Allowed Bid (${maxAllowedSpend}). Must reserve ${minCostToFill} pts for ${remainingSpotsIfBuy} players.`;
+             style = 'background: var(--error); cursor: not-allowed;';
+        }
+    } else {
+         // Bid is valid, but applying a visual warning if they are close to the limit
+         if (team.budget - minNextBid < minCostToFill + UNIFORM_BASE_PRICE) {
+             tooltip = `⚠️ CAUTION: Bid is valid (${minNextBid}), but budget will be tight for the remaining players. Must reserve ${minCostToFill} pts.`;
+             style = 'background: var(--warning); color: #000;';
+         }
+    }
+    // --- END CRITICAL MAX BID LOGIC CHECK ---
+    
+    const canBid = canMakeCompulsoryBid && !isRosterFull && !isCurrentBidder;
+
+    const btn = document.createElement('button');
+    btn.className = 'team-bid-btn';
+    btn.style = `display: flex; flex-direction: column; align-items: center; padding: 6px; ${style}`;
+    btn.textContent = name;
+    btn.setAttribute('title', tooltip);
+    btn.onclick = canBid ? ()=>teamBid(name) : null;
+    
+    // Display Max Allowed Spend on button
+    btn.innerHTML = `
+        <div style="font-weight:700">${name}</div>
+        <div style="font-size:10px; font-weight:400; opacity:0.8; margin-top: 2px;">
+            Max: ${isRosterFull ? 'Full' : maxAllowedSpend + ' pts'}
+        </div>
+    `;
+
+    el.appendChild(btn);
+  }
+}
+
+/* manual sell / pass */
+document.getElementById('manualSell').addEventListener('click', ()=>{
+  if(!state.currentId) return alert('No current player');
+  if(!state.currentBidder) return alert('No bids yet');
+  
+  const team = state.currentBidder;
+  const teamRoster = teams[team].roster.length;
+  const price = state.currentBid;
+  
+  if(teamRoster >= MAX_PER_TEAM){
+    alert(`${team} already has maximum ${MAX_PER_TEAM} players`);
+    return;
+  }
+
+  // Final Compulsory Check before selling
+  const remainingSpotsIfBuy = MAX_PER_TEAM - (teamRoster + 1);
+  const minCostToFill = remainingSpotsIfBuy * UNIFORM_BASE_PRICE; // Use UNIFORM_BASE_PRICE
+  const budgetAfterBuy = teams[team].budget - price;
+
+  if (budgetAfterBuy < minCostToFill) {
+      if(!confirm(`⚠️ WARNING: Selling ${getPlayerById(state.currentId).name} for ${price} pts will leave ${team} with only ${budgetAfterBuy} points, but they need ${minCostToFill} points minimum to buy the remaining ${remainingSpotsIfBuy} players (at uniform 200 base price). Continue?`)) return;
+  } else {
+    if(!confirm(`Sell ${getPlayerById(state.currentId).name} to ${state.currentBidder} for ${price} pts?`)) return;
+  }
+
+  finalizeSale();
+});
+
+document.getElementById('passBtn').addEventListener('click', ()=>{
+  if(!state.currentId) return alert('No current player');
+  
+  // Check if every team below MAX_PER_TEAM can afford the current player's minimum base price
+  const p = getPlayerById(state.currentId);
+  const teamsNeedingPlayers = Object.keys(teams).filter(name => teams[name].roster.length < MAX_PER_TEAM);
+  
+  if (teamsNeedingPlayers.length === 0) {
+      if(!confirm('All teams have a full roster. Mark current player UNSOLD?')) return;
+  } else {
+      // Check if any team *must* buy this player to meet the 9-player minimum later
+      let affordableTeams = teamsNeedingPlayers.filter(name => teams[name].budget >= p.base);
+      
+      if (affordableTeams.length > 0) {
+          if(!confirm(`WARNING: ${affordableTeams.length} teams need players and can afford this one (Base: ${p.base}). Marking UNSOLD might lead to budget/player shortages. Continue?`)) return;
+      }
+      else if(!confirm('Mark current player UNSOLD?')) return;
+  }
+
+  appendLog(`${getPlayerById(state.currentId).name} marked UNSOLD (returned to available pool)`);
+  // unsold players are returned to available pool and re-sorted
+  available.push(state.currentId); 
+  available.sort((a,b)=>{
+        const pA = getPlayerById(a);
+        const pB = getPlayerById(b);
+        return gradeOrder[pA.grade] - gradeOrder[pB.grade];
+    });
+
+  state.currentId = null;
+  state.currentBid = 0;
+  state.currentBidder = null;
+  renderCurrent();
+  renderAvailable();
+});
+
+/* profile view */
+document.getElementById('profileBtn').addEventListener('click', ()=> {
+  if(!state.currentId) return alert('No current player');
+  viewProfile(state.currentId);
+});
+function viewProfile(id){
+  const p = getPlayerById(id);
+  if(!p) return;
+  const gradeClass = `grade-${p.grade}`;
+  const html = `
+    <div style="padding:18px;font-family:Inter;color:#0b1220">
+      <h2>${p.name}</h2>
+      <img src="${p.img}" style="width:180px;height:180px;object-fit:cover;border-radius:8px"><br>
+      <div style="margin-top:8px"><strong>Grade:</strong> <span class="${gradeClass}">${p.grade}</span></div>
+      <div><strong>Age:</strong> ${p.age || '—'}</div>
+      <div><strong>Role:</strong> ${p.role}</div>
+      <div><strong>Base Price:</strong> ${p.base}</div>
+      <div><strong>Points:</strong> ${p.points}</div>
+      <div style="margin-top:10px">
+        <button id="closeBtn">Close</button>
+      </div>
+    </div>
+  `;
+  const w = window.open('', '_blank', 'width=360,height=580');
+  w.document.write(html);
+  w.document.title = p.name + ' — Profile';
+  w.document.getElementById('closeBtn').onclick = ()=> w.close();
+}
+
+/* finalize sale */
+function finalizeSale(){
+  const pid = state.currentId;
+  if(!pid) return;
+  const p = getPlayerById(pid);
+  const team = state.currentBidder;
+  const price = state.currentBid;
+  if(!team) return alert('No bidder');
+  if(teams[team].roster.length >= MAX_PER_TEAM){
+    alert(`${team} already has max players`);
+    return;
+  }
+  teams[team].roster.push({id:pid,name:p.name,price,points:p.points,age:p.age,role:p.role,grade:p.grade,img:p.img});
+  teams[team].budget -= price;
+  teams[team].spent += price;
+  teams[team].pointsSum += (p.points || p.base);
+  saleHistory.push({playerId:pid, team, price});
+  appendLog(`${p.name} (Grade ${p.grade}) sold to ${team} for ${price} pts`);
+  playSold();
+  highlightSold(team, pid);
+  state.currentId = null;
+  state.currentBid = 0;
+  state.currentBidder = null;
+  renderAvailable();
+  renderCurrent();
+  renderTeams();
+  updateDashboard();
+  if(document.getElementById('autoContinue').checked){
+    setTimeout(()=>{ if(!state.currentId) drawNextPlayer(); }, 600);
+  }
+}
+
+/* highlight last sold */
+function highlightSold(team, pid){
+  // find roster item and flash
+  const el = document.querySelector(`#teamsContainer [data-playerid="${pid}"]`);
+  if(el){
+    el.classList.add('highlighted');
+    el.scrollIntoView({behavior:'smooth',block:'center'});
+    setTimeout(()=>el.classList.remove('highlighted'),3800);
+  }
+}
+
+/* Undo last sale */
+document.getElementById('undoBtn').addEventListener('click', undoLastSale);
+function undoLastSale(){
+  if(saleHistory.length === 0) return alert('No sale to undo');
+  const last = saleHistory.pop();
+  const {playerId, team, price} = last;
+  // remove from team roster
+  const idx = teams[team].roster.findIndex(x=>x.id===playerId);
+  if(idx === -1) { appendLog('Undo failed: not found in roster'); return; }
+  const removed = teams[team].roster.splice(idx,1)[0];
+  teams[team].budget += price;
+  teams[team].spent -= price;
+  teams[team].pointsSum -= (removed.points || removed.price || removed.base || 0);
+  // return to available pool and re-sort
+  available.push(playerId);
+  available.sort((a,b)=>{
+        const pA = getPlayerById(a);
+        const pB = getPlayerById(b);
+        return gradeOrder[pA.grade] - gradeOrder[pB.grade];
+    });
+
+  appendLog(`Undo: ${removed.name} (Grade ${removed.grade}) removed from ${team}, refunded ${price} pts`);
+  renderAvailable();
+  renderTeams();
+  updateDashboard();
+}
+
+/* render teams */
+function renderTeams(){
+  const c = document.getElementById('teamsContainer');
+  c.innerHTML = '';
+  for(const name of teamNames.slice(0,TEAM_COUNT)){
+    const t = teams[name];
+    const isRosterFailure = t.roster.length < MAX_PER_TEAM && available.length === 0;
+
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.style.marginBottom = '8px';
+    if (isRosterFailure) {
+        el.classList.add('failed-roster');
+    }
+
+    el.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div><strong>${name}</strong><div class="small muted">Budget: ${t.budget} • Spent: ${t.spent} • Players: ${t.roster.length}/${MAX_PER_TEAM} ${isRosterFailure ? '⚠️' : ''}</div></div>
+        <div><button class="ghost" onclick="viewTeam('${name}')">View</button></div>
+      </div>
+      <div style="margin-top:8px;max-height:160px;overflow:auto">
+        ${t.roster.length===0 ? '<div class="small muted">No players</div>' : t.roster.map(r=>{
+            const gradeClass = `grade-${r.grade}`;
+            return `<div class="roster-item" data-playerid="${r.id}" style="display:flex;justify-content:space-between;align-items:center;padding:6px;border-radius:6px;margin-bottom:6px;background:linear-gradient(90deg, rgba(255,255,255,0.01), rgba(255,255,255,0.00))">
+            <div style="display:flex;gap:10px;align-items:center"><img src="${r.img}" style="width:40px;height:40px;object-fit:cover;border-radius:6px"><div><strong>${r.name}</strong> <span class="${gradeClass}">(${r.grade})</span><div class="small muted">${r.role} • Age: ${r.age || '—'}</div></div></div>
+            <div class="small muted">${r.price} pts</div>
+          </div>`;
+          }).join('')}
+      </div>
+    `;
+    c.appendChild(el);
+  }
+  renderLeaderboard();
+}
+
+/* view team details in popup */
+function viewTeam(name){
+  const t = teams[name];
+  const html = `
+    <div style="padding:14px;font-family:Inter;color:#0b1220">
+      <h2>${name}</h2>
+      <div><strong>Budget left:</strong> ${t.budget}</div>
+      <div><strong>Spent:</strong> ${t.spent}</div>
+      <div><strong>Players:</strong> ${t.roster.length}/${MAX_PER_TEAM}</div>
+      <div style="margin-top:10px">
+        ${t.roster.length===0 ? '<div>No players</div>' : t.roster.map(r=>{
+            const gradeClass = `grade-${r.grade}`;
+            return `<div style="display:flex;gap:8px;align-items:center;margin-top:6px"><img src="${r.img}" style="width:50px;height:50px;object-fit:cover;border-radius:6px"><div><strong>${r.name}</strong> <span class="${gradeClass}">(${r.grade})</span><div>${r.role} • Age: ${r.age || '—'}</div><div class="small muted">Price: ${r.price} pts</div></div></div>`;
+            }).join('')}
+      </div>
+      <div style="margin-top:10px"><button id="closeTeam">Close</button></div>
+    </div>
+  `;
+  const w = window.open('', '_blank', 'width=420,height=680');
+  w.document.write(html); w.document.title = name;
+  w.document.getElementById('closeTeam').onclick = ()=> w.close();
+}
+
+/* leaderboard sorted by points (points must be set when adding players) */
+function renderLeaderboard(){
+  // build array
+  const arr = Object.keys(teams).slice(0,TEAM_COUNT).map(name=>{
+    const t = teams[name];
+    const isRosterFailure = t.roster.length < MAX_PER_TEAM && available.length === 0;
+    return {name, points: t.pointsSum || 0, spent: t.spent, players: t.roster.length, budget: t.budget, failed: isRosterFailure};
+  }).sort((a,b)=> b.points - a.points || a.spent - b.spent);
+  const el = document.getElementById('leaderboard');
+  el.innerHTML = `<div style="font-weight:800">Leaderboard (by Points)</div>` + arr.map((t,i)=>`<div style="display:flex;justify-content:space-between;padding:6px;border-radius:6px;margin-top:6px;background:rgba(255,255,255,0.01) ${t.failed ? 'border:1px solid var(--error);' : ''}"><div><strong>#${i+1}</strong> ${t.name} ${t.failed ? '⚠️' : ''}</div><div class="small muted">Pts: ${t.points} • Spent: ${t.spent} • Players: ${t.players}</div></div>`).join('');
+}
+
+/* ========== Dashboard & Chart ========== */
+function updateDashboard(){
+  // show team budgets and metrics
+  const grid = document.getElementById('dashboardGrid');
+  grid.innerHTML = '';
+  for(const name of teamNames.slice(0,TEAM_COUNT)){
+    const t = teams[name];
+    const avg = t.roster.length === 0 ? 0 : Math.round(t.spent / t.roster.length);
+    const div = document.createElement('div');
+    div.className='dashboard-item';
+    div.style.marginTop='8px';
+    div.innerHTML = `<div style="font-weight:700">${name}</div><div class="small muted">Budget left: ${t.budget}</div><div class="small muted">Players: ${t.roster.length}</div><div class="small muted">Spent: ${t.spent}</div><div class="small muted">Avg cost: ${avg}</div>`;
+    grid.appendChild(div);
+  }
+  // update chart
+  const labels = teamNames.slice(0,TEAM_COUNT);
+  const data = labels.map(l=>teams[l].spent || 0);
+  renderChart(labels,data);
+}
+
+function renderChart(labels,data){
+  const ctx = document.getElementById('spendChart').getContext('2d');
+  if(chart) chart.destroy();
+  chart = new Chart(ctx, {
+    type: 'pie',
+    data: { labels, datasets:[{data, backgroundColor: ['#06b6d4','#0ea5a1','#f59e0b','#ef4444','#10b981'] }]},
+    options: { plugins: { legend:{position:'bottom', labels:{color:'#e6eef6'} } } }
+  });
+}
+
+/* ========== Export CSV ========== */
+document.getElementById('exportBtn').addEventListener('click', exportCSV);
+
+function exportCSV(){
+  const rows = [];
+  rows.push(['Team','Player','PlayerID','Grade','SoldPrice','Points','Age','Role','TeamRemainingBudget']);
+  for(const name of teamNames.slice(0,TEAM_COUNT)){
+    const t = teams[name];
+    if(t.roster.length===0){
+      rows.push([name,'(no players)','','',0,'', '', '', t.budget]);
+    } else {
+      t.roster.forEach(r=>{
+        rows.push([name,r.name,r.id,r.grade,r.price,r.points,r.age,r.role,t.budget]);
+      });
+    }
+  }
+  // unsold players
+  const unsold = available;
+  if(unsold.length>0){
+    rows.push([]);
+    rows.push(['UNSOLD / Remaining Players']);
+    rows.push(['Player','PlayerID','Grade','BasePrice','Points','Age','Role']);
+    unsold.forEach(id=>{
+      const p = getPlayerById(id);
+      if(!p) return;
+      rows.push([p.name,p.id,p.grade,p.base,p.points,p.age,p.role]);
+    });
+  }
+  let csv = rows.map(r=>r.map(c=>{
+    if(c===null||c===undefined) return '';
+    const s = String(c).replace(/"/g,'""');
+    if(s.search(/,|\n|"/)>=0) return `"${s}"`;
+    return s;
+  }).join(',')).join('\n');
+
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const d = new Date();
+  a.download = `auction_export_${d.toISOString().slice(0,19).replace(/[:T]/g,'-')}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  appendLog('Exported CSV');
+}
+
+/* ========== Reset / Shuffle ========== */
+document.getElementById('resetBtn').addEventListener('click', ()=>{
+  if(!confirm('Reset auction? This clears players and teams.')) return;
+  players = []; available = []; saleHistory = []; state.currentId = null; state.currentBid = 0; state.currentBidder = null;
+  initTeams();
+  // Re-seed players after reset
+  seedPlayers();
+  updateAll();
+  appendLog('Auction reset');
+});
+
+document.getElementById('shuffleBtn').addEventListener('click', ()=> {
+  if (state.currentId) {
+    if(!confirm('Current player is being auctioned. Do you want to return him to the pool and shuffle the rest?')) return;
+    // Return current player to pool
+    available.push(state.currentId);
+    state.currentId = null;
+    state.currentBid = 0;
+    state.currentBidder = null;
+    renderCurrent();
+  }
+  
+  // Shuffle available while maintaining grade order for the NEXT draw (A -> B -> C)
+  const gradeA = available.filter(id => getPlayerById(id).grade === 'A');
+  const gradeB = available.filter(id => getPlayerById(id).grade === 'B');
+  const gradeC = available.filter(id => getPlayerById(id).grade === 'C');
+
+  // Shuffle within each grade
+  const shuffleArray = (arr) => {
+    for(let i=arr.length-1;i>0;i--){
+      const j = rnd(i+1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  };
+  shuffleArray(gradeA);
+  shuffleArray(gradeB);
+  shuffleArray(gradeC);
+
+  // Recombine (A -> B -> C)
+  available = gradeA.concat(gradeB).concat(gradeC);
+
+  appendLog('Shuffled players within their respective grades (A, B, C)');
+  renderAvailable();
+});
+
+/* ========== Initialize UI & data ========== */
+function updateAll(){
+  renderAvailable();
+  renderCurrent();
+  renderTeams();
+  updateDashboard();
+}
+initTeams();
+
+/* Player Seed Data: Generating 45 Indian Players with Grades and UNIFORM BASE PRICE */
+function seedPlayers(){
+  const firstNames = ['Amit', 'Anil', 'Ashok', 'Gaurav', 'Harsh', 'Jatin', 'Kunal', 'Manish', 'Nikhil', 'Praveen', 'Rajesh', 'Ramesh', 'Sanjay', 'Sunil', 'Vikas', 'Yogesh', 'Girish', 'Dheeraj', 'Kamlesh', 'Brijesh', 'Manoj', 'Mukesh', 'Rohan', 'Suraj', 'Vimal', 'Deepak', 'Arjun', 'Chetan', 'Farooq', 'Hiten', 'Ishaan', 'Kartik', 'Lalit', 'Navdeep', 'Ojas', 'Piyush', 'Quadir', 'Ravi', 'Sachin', 'Tushar', 'Umesh', 'Vinay', 'Waseem', 'Xavier', 'Yuvraj'];
+  const lastNames = ['Yadav', 'Sharma', 'Verma', 'Singh', 'Kumar', 'Reddy', 'Patil', 'Gupta', 'Saini', 'Pandey', 'Mishra', 'Chauhan', 'Thakur', 'Goyal', 'Jain', 'Shah', 'Patel', 'Das', 'Dutta', 'Sinha', 'Chopra', 'Malik', 'Saxena', 'Tiwari', 'Rao', 'Zaman', 'Gill', 'Joshi', 'Dubey', 'Gautam', 'Khan', 'Rajput', 'Shinde', 'Kulkarni', 'Naidu', 'Soni', 'Bhatia', 'Mourya', 'Nair', 'Siddiqui', 'Virk', 'Dev', 'Trivedi', 'Warsi', 'Qureshi'];
+  const roles = ['Batsman', 'Bowler', 'All-rounder', 'WK'];
+  const grades = ['A', 'B', 'C'];
+  const totalPlayers = 45;
+  const gradeCounts = { 'A': 10, 'B': 15, 'C': 20 }; // Using same counts as before for variety
+
+  const playerList = [];
+
+  const gradePools = { 'A': [], 'B': [], 'C': [] };
+  
+  // Fill pools with unique players until counts are met
+  while(playerList.length < totalPlayers){
+    let name = '';
+    let grade;
+
+    // Determine the grade for the current player
+    if (gradePools['A'].length < gradeCounts['A']) {
+        grade = 'A';
+    } else if (gradePools['B'].length < gradeCounts['B']) {
+        grade = 'B';
+    } else if (gradePools['C'].length < gradeCounts['C']) {
+        grade = 'C';
+    } else {
+        break; 
+    }
+
+    // Generate unique name
+    do {
+        const fName = firstNames[rnd(firstNames.length)];
+        const lName = lastNames[rnd(lastNames.length)];
+        name = `${fName} ${lName}`;
+    } while (playerList.some(p => p.name === name)); 
+
+    const role = roles[rnd(roles.length)];
+    const age = 20 + rnd(15);
+    const base = UNIFORM_BASE_PRICE; // Enforce UNIFORM BASE PRICE (200)
+    
+    const initials = name.split(' ').map(n => n.charAt(0)).join('');
+    const imgUrl = `https://dummyimage.com/200x200/0f172a/06b6d4&text=${encodeURIComponent(initials)}`;
+
+    const newPlayer = {
+        name: name,
+        age: age,
+        role: role,
+        grade: grade,
+        base: base,
+        points: base, 
+        img: imgUrl
+    };
+    
+    playerList.push(newPlayer);
+    gradePools[grade].push(newPlayer);
+  }
+  
+  // Shuffle players within their grade and then combine them in order (A -> B -> C)
+  const shuffleArray = (arr) => {
+    for(let i=arr.length-1;i>0;i--){
+      const j = rnd(i+1);
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  };
+  
+  shuffleArray(gradePools['A']);
+  shuffleArray(gradePools['B']);
+  shuffleArray(gradePools['C']);
+
+  const finalOrder = gradePools['A'].concat(gradePools['B']).concat(gradePools['C']);
+
+  // Add generated players to the auction
+  finalOrder.forEach(s=>{
+    const id = uid();
+    players.push({...s,id});
+    available.push(id);
+  });
+}
+
+// Initial seed on load
+seedPlayers();
+updateAll();
+
+/* playBid / playSold wrappers to activate audio context on first user action */
+function playBid(){ try{ if(audioCtx.state==='suspended') audioCtx.resume(); playTone(900,0.05,'square'); } catch(e){} }
+function playSold(){ try{ if(audioCtx.state==='suspended') audioCtx.resume(); playTone(520,0.15,'sine'); } catch(e){} }
+</script>
+</body>
+</html>
