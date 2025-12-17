@@ -262,9 +262,8 @@ const UNIFORM_BASE_PRICE = 200; // Hardcoded uniform base price
 document.getElementById('maxPerTeamLabel').textContent = MAX_PER_TEAM;
 document.getElementById('maxLabel').textContent = MAX_PER_TEAM;
 
-// UPDATED TEAM NAMES
+// Defined Team Names (Only 5 teams, excluding GT, CSK, SRH per request)
 const teamNames = ["MI","DC","KKR","RCB","PUNE"];
-while(teamNames.length < TEAM_COUNT) teamNames.push("Team " + (teamNames.length+1));
 
 let players = []; 
 let available = []; // player ids currently available, sorted by Grade (A, B, C)
